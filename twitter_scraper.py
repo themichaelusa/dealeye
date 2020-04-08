@@ -20,7 +20,7 @@ uni_contacts = ['harvard.edu']
 csuite = ['ceo', 'cfo', 'cto']
 status = ['founder', 'co-founder', 'entrepreneur']
 modifiers = ['stealth', 'startup']
-email_exclude = ['linkedin.com', 'tumblr.com', 'forbes.com', 'wordpress.com', 'instagram.com', 'twitter.com', 'amazon.com', 'medium.com', 'github.com', 'wikipedia.org', 'substack.com','youtube.com', 'reuters.com', 'bbc.co.uk', 'blogspot.com', 'google.com', 'microsoft.com', 'huffpost.com', 'apple.com', 'uber.com', 'inc.com', 'sony.com', 'yahoo.com', 'cisco.com', 'mckinsey.com', 'ge.com', 'jpmorgan.com', 'salesforce.com', 'yext.com', 'goldmansachs.com', 'facebook.com', 'midpennbank.com', 'ironmountain.com', 'gilead.com', 'airbnb.com', 'expedia.com', 'guinnessworldrecords.com', 'crossfit.com', 'mlb.com', 'sonypictures.com', 'philadelphiaeagles.com', 'corporate.comcast.com', 'nba.com', 'deloitte.com', 'accenture.com', 'accel.com', 'ralphlauren.com', 'nike.com', 'vmware.com']
+email_exclude = ['linkedin.com', 'tumblr.com', 'forbes.com', 'wordpress.com', 'instagram.com', 'twitter.com', 'amazon.com', 'medium.com', 'github.com', 'wikipedia.org', 'substack.com','youtube.com', 'reuters.com', 'bbc.co.uk', 'blogspot.com', 'google.com', 'microsoft.com', 'huffpost.com', 'apple.com', 'uber.com', 'inc.com', 'sony.com', 'yahoo.com', 'cisco.com', 'mckinsey.com', 'ge.com', 'jpmorgan.com', 'salesforce.com', 'yext.com', 'goldmansachs.com', 'facebook.com', 'midpennbank.com', 'ironmountain.com', 'gilead.com', 'airbnb.com', 'expedia.com', 'guinnessworldrecords.com', 'crossfit.com', 'mlb.com', 'sonypictures.com', 'philadelphiaeagles.com', 'corporate.comcast.com', 'nba.com', 'deloitte.com', 'accenture.com', 'accel.com', 'ralphlauren.com', 'nike.com', 'vmware.com', 'github.io', 'angel.co', 'ycombinator.com']
 USER_SEARCH_PAGE_SIZE = 20
 
 STOPWORDS = set(stopwords.words('english'))
@@ -291,7 +291,8 @@ def pull_users_by_keywords_list(keywords_list, user_count=250):
 		'Profile URL': user_obj.url,
 		'Description URLS': [],
 		'Contact Email (Primary)': None, 
-		'Contact Email (Secondary)': None
+		'Contact Email (Secondary)': None,
+		'Contact Domains (Checked)': []
 		}
 
 		#get_school(kwd_str)
@@ -318,11 +319,7 @@ def pull_users_by_keywords_list(keywords_list, user_count=250):
 			local_url = None
 		elif len(url) > 50:
 			local_url = None
-		elif url.endswith('.edu'):
-			local_url = None
-		elif url.endswith('.gov'):
-			local_url = None
-		elif url.endswith('.mil'):
+		elif '.edu' in url or '.mil' in url or '.gov' in url:
 			local_url = None
 
 		formatted_users[uid]['Profile URL'] = local_url
@@ -346,8 +343,31 @@ def set_contact_emails_for_user(users_data):
 
 	f = open("contact_file.txt", "a+")
 
+	results = []
 	for uid in users_data.keys():
-	
+		prof_url = users_data[uid]['Profile URL']
+		desc_urls = users_data[uid]['Description URLS']
+		desc_urls_len = len(desc_urls)
+		#print(desc_urls)
+
+		run_url = prof_url
+		if desc_urls_len > 0 and prof_url not in desc_urls:
+			print('desc_urls_len > 0 and prof_url not in desc_urls', desc_urls[0])
+			run_url = desc_urls[0]
+		else:
+			print('desc_urls_len == 0 or prof_url in desc_urls', prof_url)
+
+		### TODO do work
+		res = None
+
+		if desc_urls_len and run_url == desc_urls[0] and res is not None:
+			run_url = prof_url
+
+		### TODO do work again
+
+		results.append(res)
+
+		"""
 		uname = users_data[uid]['Name'] 
 		school_domain = users_data[uid]['Description URLS'][0]
 
@@ -360,6 +380,7 @@ def set_contact_emails_for_user(users_data):
 
 		users_data[uid]['Contact Email (Primary)'] = email
 		f.write('{},{}\n'.format(uid, email))  
+		"""
 
 	f.close()
 	to_json_file('contact_save.json', users_data)
@@ -383,7 +404,9 @@ def xlsx_to_users(rpath):
 
 if __name__ == '__main__':
 	#keywords_list = gen_keyword_space()
-	users_data = pull_users_by_keywords_list(keywords_list[:10])
+	users_data = pull_users_by_keywords_list(keywords_list)
+	set_contact_emails_for_user(users_data)
+	exit()
 	for uid, data in users_data.items():
 		#print('DESC:', data['Description'])
 		print('NAME: ', data['Name'])
