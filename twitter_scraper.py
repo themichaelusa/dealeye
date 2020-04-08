@@ -334,6 +334,18 @@ def pull_users_by_keywords_list(keywords_list, user_count=250):
 
 	return formatted_users
 
+def get_contact_email_from_domain(domain):
+	emails = None
+
+	try:
+		emails_data = HUNTER_CLIENT.domain_search(domain=domain, emails_type='personal', limit=2)
+		#print('email: {} | csc: {}'.format(email, csc))
+		emails = [e['value'] for e in emails_data['emails']]
+	except Exception as e:
+		print("ERROR: ", e)
+
+	return emails
+
 def set_contact_emails_for_user(users_data):
 	# py hunter
 
@@ -342,15 +354,45 @@ def set_contact_emails_for_user(users_data):
 	# check Profile URL first if valid
 
 	f = open("contact_file.txt", "a+")
-
-	results = []
+	results_dict = defaultdict(list)
+	
 	for uid in users_data.keys():
 		prof_url = users_data[uid]['Profile URL']
 		desc_urls = users_data[uid]['Description URLS']
+		users_data[uid]['Contact Domains (Checked)'].append(prof_url)
+		users_data[uid]['Contact Domains (Checked)'].extend(desc_urls)
 		desc_urls_len = len(desc_urls)
-		#print(desc_urls)
 
-		run_url = prof_url
+		print('PROF URL:', prof_url)
+		print('DESC_URLs', desc_urls)
+
+		run_urls = [prof_url] # if we only have a prof url or have both, but they are the same
+		
+		# no valid urls for this user
+		if desc_urls_len == 0 and prof_url is None:
+			print('CAUSE OF: desc_urls_len == 0 and prof_url is None', run_urls)
+			results_dict[uid] = []
+			continue
+
+		# if we only have a desc url
+		elif desc_urls_len > 0 and prof_url is None:
+			run_urls = [desc_urls[0]]
+			print('RESPONSE TO: desc_urls_len > 0 and prof_url is None', run_urls)
+
+		# if we have both, but both are different 
+		elif desc_urls_len > 0 and prof_url != desc_urls[0]:
+			run_urls.append(desc_urls[0])
+			print('RESPONSE TO: desc_urls_len > 0 and prof_url != desc_urls[0', run_urls)
+		
+		for url in run_urls:
+			contact_emails = get_contact_email_from_domain(url)
+			if contact_emails is not None:
+				results_dict[uid].extend(contact_emails)
+			else:
+				results_dict[uid] = []
+
+		"""
+		# if we have a valid description url
 		if desc_urls_len > 0 and prof_url not in desc_urls:
 			print('desc_urls_len > 0 and prof_url not in desc_urls', desc_urls[0])
 			run_url = desc_urls[0]
@@ -358,14 +400,24 @@ def set_contact_emails_for_user(users_data):
 			print('desc_urls_len == 0 or prof_url in desc_urls', prof_url)
 
 		### TODO do work
-		res = None
+		res = get_contact_email_from_domain(run_url)
 
-		if desc_urls_len and run_url == desc_urls[0] and res is not None:
+		# profile url failed, no desc url, move on
+		if res_prof is None and run_url == prof_url and desc_urls_len == 0:
+			results.append((uid, res))
+			continue
+		elif res_prof is None and run_url == prof_url and desc_urls_len > 0:
+			if 
+
+		if res_prof is None and desc_urls_len:
 			run_url = prof_url
+			res2 = get_contact_email_from_domain(run_url)
+			results_sublist
+
+		re
+		"""
 
 		### TODO do work again
-
-		results.append(res)
 
 		"""
 		uname = users_data[uid]['Name'] 
@@ -382,8 +434,9 @@ def set_contact_emails_for_user(users_data):
 		f.write('{},{}\n'.format(uid, email))  
 		"""
 
+	print(results_dict)
 	f.close()
-	to_json_file('contact_save.json', users_data)
+	#to_json_file('contact_save.json', users_data)
 
 
 	#email, confidence_score = HUNTER_CLIENT.email_finder('instragram.com', full_name='KS')
@@ -404,7 +457,7 @@ def xlsx_to_users(rpath):
 
 if __name__ == '__main__':
 	#keywords_list = gen_keyword_space()
-	users_data = pull_users_by_keywords_list(keywords_list)
+	users_data = pull_users_by_keywords_list(keywords_list[:1])
 	set_contact_emails_for_user(users_data)
 	exit()
 	for uid, data in users_data.items():
