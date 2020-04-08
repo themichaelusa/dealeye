@@ -15,7 +15,7 @@ from nltk.corpus import stopwords
 import concurrent.futures
 from multiprocessing import cpu_count
 
-schools = ['harvard', 'hbs', 'stanford', 'gsb', 'penn', 'upenn']
+schools = {'harvard', 'hbs', 'stanford', 'gsb', 'penn', 'upenn', 'penn_state'}
 uni_contacts = ['harvard.edu']
 csuite = ['ceo', 'cfo', 'cto']
 status = ['founder', 'co-founder', 'entrepreneur']
@@ -151,9 +151,10 @@ def is_user_valid(user_obj):
 	return True
 
 def is_blocked_url(url):
-	for blocked_url in email_exclude:
-		if blocked_url in url:
-			return True
+	if url is not None:
+		for blocked_url in email_exclude:
+			if blocked_url in url:
+				return True
 	return False
 
 def fmt_description(desc):
@@ -171,6 +172,7 @@ def get_probable_tlink(desc):
 					if desc[word_pos][0] == '@':
 						return desc[word_pos]
 
+	# todo: check for examples like these : @cryptonomics\nPhD
 	# todo: check if title in desc string, and if that's in url
 	return None
 
@@ -200,11 +202,13 @@ def scrape_urls_from_descriptions(users_dict):
 
 		# get all "@" links
 		split_desc = fmt_description(desc)
-		print("DESC:", split_desc)
+		#print("DESC:", split_desc)
 		tlinks = [get_probable_tlink(split_desc)]
+		tlinks = [tl for tl in tlinks if tl is not None]
 		tlinks = [tl[1:] for tl in tlinks if len(tl) > 1]
 		tlinks = [re.sub(r'\W+', '', tl) for tl in tlinks]
-		print("P TLINK: ", p_tlink)
+		tlinks = [tl for tl in tlinks if tl not in schools]
+
 		#tlinks = [tl for tl in split_desc if tl[0] == '@']
 		#tlinks = [tl[1:] for tl in tlinks if len(tl) > 1]
 		#tlinks = [re.sub(r'\W+', '', tl) for tl in tlinks]
@@ -213,6 +217,11 @@ def scrape_urls_from_descriptions(users_dict):
 		for tlink in tlinks:
 			if tlink is not None:
 				unames_dict[tlink].append(uid)
+
+		#if len(tlinks) == 0:
+		# todo: 
+		#print("P TLINK: ", tlinks)
+
 
 		# retrieve and store any floating urls
 		"""
@@ -271,7 +280,7 @@ def pull_users_by_keywords_list(keywords_list, user_count=250):
 		user_obj, kwd_str = users_dict[uid]
 
 		# todo: filtering step. Name + Description
-		if is_user_valid(user_obj) is False:
+		if not is_user_valid(user_obj):
 			continue
 	 
 		data_dict = {
@@ -298,25 +307,31 @@ def pull_users_by_keywords_list(keywords_list, user_count=250):
 
 	urls_data = get_redirect_urls(raw_urls)
 	for uid, url in urls_data:
+		#print('URL', url)
 		# apply filter here
+		local_url = get_domain(url)
 		if url is None:
-			continue
+			local_url = None
+		elif is_blocked_url(url):
+			local_url = None
+		elif '.net' in url or '.org' in url:
+			local_url = None
+		elif len(url) > 50:
+			local_url = None
+		elif url.endswith('.edu'):
+			local_url = None
+		elif url.endswith('.gov'):
+			local_url = None
+		elif url.endswith('.mil'):
+			local_url = None
 
-		if is_blocked_url(url):
-			continue
+		formatted_users[uid]['Profile URL'] = local_url
 
+	for k,v in formatted_users.items():
+		url = v['Profile URL']
 		# todo, do a recursive resolution here
-		if '://t.co' in url:
-			continue
-
-		if url.endswith('.edu/'):
-			continue
-		elif url.endswith('.gov/'):
-			continue
-		elif url.endswith('.mil/'):
-			continue
-
-		formatted_users[uid]['Profile URL'] = url
+		if url is not None and '://t.co' in url:
+			v['Profile URL'] = None
 
 	scrape_urls_from_descriptions(formatted_users)
 
@@ -368,9 +383,10 @@ def xlsx_to_users(rpath):
 
 if __name__ == '__main__':
 	#keywords_list = gen_keyword_space()
-	users_data = pull_users_by_keywords_list(keywords_list[:2])
+	users_data = pull_users_by_keywords_list(keywords_list[:10])
 	for uid, data in users_data.items():
 		#print('DESC:', data['Description'])
+		print('NAME: ', data['Name'])
 		print('ID {} -> PROFILE URL', data['Profile URL'])
 		print('DESC URLS', data['Description URLS'])
 	#print(users_data)
