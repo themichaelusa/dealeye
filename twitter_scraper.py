@@ -292,6 +292,7 @@ def pull_users_by_keywords_list(keywords_list, user_count=250):
 		'Description URLS': [],
 		'Contact Email (Primary)': None, 
 		'Contact Email (Secondary)': None,
+		'Valid Contact Emails': [],
 		'Contact Domains (Checked)': []
 		}
 
@@ -355,7 +356,7 @@ def set_contact_emails_for_user(users_data):
 
 	f = open("contact_file.txt", "a+")
 	results_dict = defaultdict(list)
-	
+
 	for uid in users_data.keys():
 		prof_url = users_data[uid]['Profile URL']
 		desc_urls = users_data[uid]['Description URLS']
@@ -388,6 +389,9 @@ def set_contact_emails_for_user(users_data):
 			contact_emails = get_contact_email_from_domain(url)
 			if contact_emails is not None:
 				results_dict[uid].extend(contact_emails)
+				users_dict[uid]['Valid Contact Emails'].extend(contact_emails)
+				for email in contact_emails:
+					f.write('{},{}\n'.format(uid, email))  
 			else:
 				results_dict[uid] = []
 
@@ -431,7 +435,6 @@ def set_contact_emails_for_user(users_data):
 			pass
 
 		users_data[uid]['Contact Email (Primary)'] = email
-		f.write('{},{}\n'.format(uid, email))  
 		"""
 
 	print(results_dict)
