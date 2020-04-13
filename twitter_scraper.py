@@ -1,19 +1,24 @@
+### STDLIB IMPORTS
 import json
 import re  
 import string  
 import socket
-import pandas as pd
-import requests 
-import twitter
-from collections import defaultdict
-from difflib import SequenceMatcher
-from operator import itemgetter
-
-import nltk
-from nltk.corpus import stopwords
-
 import concurrent.futures
+from operator import itemgetter
 from multiprocessing import cpu_count
+from collections import defaultdict
+
+### LOCAL IMPORTS
+import constants as cst
+
+### PACKAGE IMPORTS
+import twitter
+import requests 
+import pandas as pd
+from pyhunter import PyHunter
+from nltk.corpus import stopwords
+from difflib import SequenceMatcher
+
 
 schools = {'harvard', 'hbs', 'stanford', 'gsb', 'penn', 'upenn', 'penn_state'}
 uni_contacts = ['harvard.edu']
@@ -24,7 +29,6 @@ email_exclude = ['linkedin.com', 'tumblr.com', 'forbes.com', 'wordpress.com', 'i
 USER_SEARCH_PAGE_SIZE = 20
 
 STOPWORDS = set(stopwords.words('english'))
-
 
 # working query list
 
@@ -42,10 +46,16 @@ STOPWORDS = set(stopwords.words('english'))
 # wharton startup
 # wharton co-founder
 
+
+### CONSTANTS
+HUNTER_API_KEY = '32226a108c7f659fffbb25d08343f9cf00f6d359'
+HUNTER_CLIENT = PyHunter(HUNTER_API_KEY)
+
+
 socket.setdefaulttimeout(5)
 DEFAULT_WORKER_N = 5*cpu_count()
 keywords_list = ['penn co-founder', 'penn founder', 'penn startup', 'penn ceo', 'penn cfo', 'penn cto', 'penn entrepreneur', 'wharton founder','wharton startup', 'wharton co-founder', 'wharton ceo', 'wharton cfo', 'wharton cto', 'penn entrepreneur', 'harvard startup', 'harvard co-founder', 'harvard founder', 'harvard ceo', 'harvard cfo', 'harvard cto', 'harvard entrepreneur', 'stanford startup', 'stanford co-founder', 'stanford founder', 'stanford cto', 'stanford ceo', 'stanford cto', 'stanford entrepreneur', 'hbs startup', 'hbs co-founder', 'hbs founder', 'hbs cto', 'hbs ceo', 'hbs cto', 'hbs entrepreneur', 'gsb startup', 'gsb co-founder', 'gsb founder', 'gsb cto', 'gsb ceo', 'gsb cto', 'gsb entrepreneur']
-columns = ['Name', 'Profile Link', 'Keywords Searched', 'Description', 'Profile URL', 'Description URLS', 'Contact Email (Primary)', 'Contact Email (Secondary)']
+columns = ['Name', 'Profile Link', 'Keywords Searched', 'Description', 'Profile URL', 'Description URLS', 'Contact Email (Primary)', 'Contact Email (Secondary)', 'Valid Contact Emails', 'Contact Domains (Checked)']
 
 rm_punc = string.punctuation
 twitter_user_link = 'https://twitter.com/{}'
@@ -69,12 +79,6 @@ twitter_api = twitter.Api(consumer_key='lKkx9SdW7kmzvSzxuXtqAd4ke',
 	consumer_secret='KwiPcudgoT9EBRILa97x8mdxpckVmot1vUjACUun0elrTZrdt7', 
 	access_token_key='1245431259679076354-rNiiYaSWoRrS6oC0bmvr7IGyDjDqD6', 
 	access_token_secret='NFkAM70l7AUnywOQjJmsZTgnQFppvTlWmavChW4cWRhdX')
-
-from pyhunter import PyHunter
-
-### CONSTANTS
-HUNTER_API_KEY = '32226a108c7f659fffbb25d08343f9cf00f6d359'
-HUNTER_CLIENT = PyHunter(HUNTER_API_KEY)
 
 
 ### MISC HELPERS
@@ -158,9 +162,20 @@ def is_blocked_url(url):
 	return False
 
 def fmt_description(desc):
+	no_emoji_desc = rm_emojis(desc)
+	fmt_desc = no_emoji_desc.replace('\n', ' ')
+
+	fmt_desc = [re.sub(r'(?!_)(?!@)\W+', '', w) for w in fmt_desc.split(' ')]
+	fmt_desc = [w.lower() for w in fmt_desc if w != '']
+	fmt_desc = [w for w in fmt_desc if w not in STOPWORDS]
+
+	"""
 	raw_desc = rm_emojis(desc)
 	raw_desc = [d.lower() for d in raw_desc.split(' ') if d != '']
 	return [d for d in raw_desc if d not in STOPWORDS]
+	"""
+
+	return fmt_desc
 
 # todo: also check profile url
 def get_probable_tlink(desc):
@@ -206,8 +221,10 @@ def scrape_urls_from_descriptions(users_dict):
 		tlinks = [get_probable_tlink(split_desc)]
 		tlinks = [tl for tl in tlinks if tl is not None]
 		tlinks = [tl[1:] for tl in tlinks if len(tl) > 1]
-		tlinks = [re.sub(r'\W+', '', tl) for tl in tlinks]
+		#tlinks = [re.sub(r'\W+', '', tl) for tl in tlinks]
 		tlinks = [tl for tl in tlinks if tl not in schools]
+		print('PRINTED DESCRIPTION', split_desc)
+		continue
 
 		#tlinks = [tl for tl in split_desc if tl[0] == '@']
 		#tlinks = [tl[1:] for tl in tlinks if len(tl) > 1]
@@ -354,8 +371,8 @@ def set_contact_emails_for_user(users_data):
 	# todo: check if name is a valid name 
 	# check Profile URL first if valid
 
-	f = open("contact_file.txt", "a+")
-	results_dict = defaultdict(list)
+	#f = open("contact_file.txt", "a+")
+	#results_dict = defaultdict(list)
 
 	for uid in users_data.keys():
 		prof_url = users_data[uid]['Profile URL']
@@ -372,7 +389,6 @@ def set_contact_emails_for_user(users_data):
 		# no valid urls for this user
 		if desc_urls_len == 0 and prof_url is None:
 			print('CAUSE OF: desc_urls_len == 0 and prof_url is None', run_urls)
-			results_dict[uid] = []
 			continue
 
 		# if we only have a desc url
@@ -388,68 +404,19 @@ def set_contact_emails_for_user(users_data):
 		for url in run_urls:
 			contact_emails = get_contact_email_from_domain(url)
 			if contact_emails is not None:
-				results_dict[uid].extend(contact_emails)
-				users_dict[uid]['Valid Contact Emails'].extend(contact_emails)
-				for email in contact_emails:
-					f.write('{},{}\n'.format(uid, email))  
-			else:
-				results_dict[uid] = []
+				#results_dict[uid].extend(contact_emails)
+				users_data[uid]['Valid Contact Emails'].extend(contact_emails)
 
-		"""
-		# if we have a valid description url
-		if desc_urls_len > 0 and prof_url not in desc_urls:
-			print('desc_urls_len > 0 and prof_url not in desc_urls', desc_urls[0])
-			run_url = desc_urls[0]
-		else:
-			print('desc_urls_len == 0 or prof_url in desc_urls', prof_url)
+		print('ID: {} -> Valid Contact Emails:'.format(uid), users_data[uid]['Valid Contact Emails'])
 
-		### TODO do work
-		res = get_contact_email_from_domain(run_url)
-
-		# profile url failed, no desc url, move on
-		if res_prof is None and run_url == prof_url and desc_urls_len == 0:
-			results.append((uid, res))
-			continue
-		elif res_prof is None and run_url == prof_url and desc_urls_len > 0:
-			if 
-
-		if res_prof is None and desc_urls_len:
-			run_url = prof_url
-			res2 = get_contact_email_from_domain(run_url)
-			results_sublist
-
-		re
-		"""
-
-		### TODO do work again
-
-		"""
-		uname = users_data[uid]['Name'] 
-		school_domain = users_data[uid]['Description URLS'][0]
-
-		email = 'NONE'
-		try:
-			email, csc = HUNTER_CLIENT.email_finder(school_domain, full_name=uname)
-			print('email: {} | csc: {}'.format(email, csc))
-		except Exception as e:
-			pass
-
-		users_data[uid]['Contact Email (Primary)'] = email
-		"""
-
-	print(results_dict)
-	f.close()
-	#to_json_file('contact_save.json', users_data)
-
-
-	#email, confidence_score = HUNTER_CLIENT.email_finder('instragram.com', full_name='KS')
-	# check Description URLS second if there's a match
+	#f.close()
+	to_json_file('contact_save.json', users_data)
 
 	# procedure:
 	# check for individual name first 
 	# check for 5 personal emails from startup
 	# check for 2 general emails from startup
-	pass
+	#pass
 
 def users_to_xlsx(wpath, data, colns=columns):
 	df = pd.DataFrame(data, columns=colns)
@@ -460,17 +427,33 @@ def xlsx_to_users(rpath):
 
 if __name__ == '__main__':
 	#keywords_list = gen_keyword_space()
-	users_data = pull_users_by_keywords_list(keywords_list[:1])
-	set_contact_emails_for_user(users_data)
-	exit()
+	users_data = pull_users_by_keywords_list(keywords_list[:10])
+	#set_contact_emails_for_user(users_data)
+
+	"""
 	for uid, data in users_data.items():
 		#print('DESC:', data['Description'])
 		print('NAME: ', data['Name'])
 		print('ID {} -> PROFILE URL', data['Profile URL'])
 		print('DESC URLS', data['Description URLS'])
-	#print(users_data)
-	#set_contact_emails_for_user(users_data)
+	"""
+	
+	"""
+	users_data = from_json_file('contact_save.json')
+	for uid in users_data.keys():
+		valid_emails = users_data[uid]['Valid Contact Emails']
+		if len(valid_emails):
+			users_data[uid]['Valid Contact Emails'] = ','.join(valid_emails)
+			print('UID {}:'.format(uid), ','.join(valid_emails))
 
-	#users_data = from_json_file('contact_save.json')
-	#users_to_xlsx('test_final.xlsx', users_data.values())
+		domains_checked = users_data[uid]['Contact Domains (Checked)']
+		if len(domains_checked) > 1 and domains_checked[0] is not None:
+			users_data[uid]['Contact Domains (Checked)'] = ','.join(domains_checked)
+		else:
+			users_data[uid]['Contact Domains (Checked)'] = 'No viable domains found'
+		
+	#print(users_data)
+
+	users_to_xlsx('test_final.xlsx', users_data.values())
+	"""
 
