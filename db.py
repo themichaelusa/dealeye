@@ -1,18 +1,13 @@
-### IMPORTS
+### STDLIB IMPORTS
 import json
 import sqlite3
 
+### LOCAL IMPORTS
+import constants as cst
+
+### PACKAGE IMPORTS
+
 ### CONSTANTS/GLOBALS
-CREATE_TABLE_STR = "CREATE TABLE {} (id varchar, data json);"
-WRITE_JSON_STR = "insert into {} values (?, ?);"
-READ_JSON_KEY_STR = "select json_extract(data, '$.{}') from {} where ID = {};"
-READ_JSON_ROW_STR = "select * from {} where ID = {};"
-READ_ALL_JSON_KEYS_STR = "select json_extract(data, '$.{}') from {};"
-READ_ALL_ROWS_STR = "select * from {};"
-READ_ALL_IDS_STR = 'select ID from {}'
-UPDATE_ROW_STR = 'update {} set data = "{}" where ID = {};'
-DELETE_ROW_STR = 'delete from {} where ID = {};'
-ROW_EXISTS_STR = 'select count(*) from {} where ID = {};'
 
 class DealEyeDB:
 	def __init__(self, db_path):
@@ -25,12 +20,12 @@ class DealEyeDB:
 
 	### BASIC DB UTILITIES
 	def __create_table(self, name):
-		self.cursor.execute(CREATE_TABLE_STR.format(name))
+		self.cursor.execute(cst.CREATE_TABLE_STR.format(name))
 
 	def get_all_table_ids(self, as_gen=False):
 		result = self.cursor.execute(
-			READ_ALL_IDS_STR.format(
-			self.selected_table))
+		cst.READ_ALL_IDS_STR.format(
+		self.selected_table))
 
 		if as_gen:
 			return (id[0] for id in result.fetchall())
@@ -39,19 +34,20 @@ class DealEyeDB:
 
 	def row_exists(self, id):
 		result = self.cursor.execute(
-			ROW_EXISTS_STR.format(
-			self.selected_table, id))
+		cst.ROW_EXISTS_STR.format(
+		self.selected_table, id))
 		return result.fetchone()[0] > 0
 
 	### BASIC DB OPERATIONS (R/W/A/D)
 	# if column=None, read row. if id is None, read_all
+	# todo: add multi column read
 	def read(self, id=None, column=None):
 		if id:
 			if column:
 				# read column from row with id
 				result = self.cursor.execute(
-					READ_JSON_KEY_STR.format(
-					column, self.selected_table, id))
+				cst.READ_JSON_KEY_STR.format(
+				column, self.selected_table, id))
 
 				result = result.fetchone()
 				if result:
@@ -61,8 +57,8 @@ class DealEyeDB:
 			else:
 				# read row with id
 				result = self.cursor.execute(
-					READ_JSON_ROW_STR.format(
-					self.selected_table, id))
+				cst.READ_JSON_ROW_STR.format(
+				self.selected_table, id))
 
 				result = result.fetchone()
 				if result:
@@ -73,8 +69,8 @@ class DealEyeDB:
 			if column:
 				# read column from all rows
 				result = self.cursor.execute(
-					READ_ALL_JSON_KEYS_STR.format(
-					column, self.selected_table)).fetchall()
+				cst.READ_ALL_JSON_KEYS_STR.format(
+				column, self.selected_table)).fetchall()
 
 				all_ids = self.get_all_table_ids()
 				return [(tid, data[0]) for tid, data in zip(
@@ -82,8 +78,8 @@ class DealEyeDB:
 			else:
 				# read all rows
 				result = self.cursor.execute(
-					READ_ALL_ROWS_STR.format(
-						self.selected_table))
+				cst.READ_ALL_ROWS_STR.format(
+				self.selected_table))
 				return result.fetchall()
 
 	# if column=None, read row. if id is None, read_all
@@ -96,8 +92,9 @@ class DealEyeDB:
 	
 		if column:
 			result = self.cursor.execute(
-				READ_JSON_ROW_STR.format(
-				self.selected_table, id))
+			cst.READ_JSON_ROW_STR.format(
+			self.selected_table, id))
+
 			result = result.fetchone()[1]
 			result = json.loads(result)
 			result[column] = data
@@ -105,48 +102,42 @@ class DealEyeDB:
 			result = data
 
 		result = json.dumps(result)
-	
+		
+		# if row exists, delete it, otherwise just write to it
+		# todo: figure out how update call actually works
 		if self.row_exists(id):
-			#print(UPDATE_ROW_STR.format(self.selected_table, result, id))
-			"""
-			self.cursor.execute(
-			UPDATE_ROW_STR.format(
-			self.selected_table, result, id))
-			"""
 			self.delete(id)
 		
-		#
 		self.cursor.execute(
-			WRITE_JSON_STR.format(
-			self.selected_table), [id, result])
+		cst.WRITE_JSON_STR.format(
+		self.selected_table), [id, result])
 
 		self.conn.commit()
 
 	def add(self, id, data):
-		self.write(id, data=data)
+		if not self.row_exists(id):
+			self.write(id, data=data)
 
 	def delete(self, id=None):
 		if id and self.row_exists(id):
 			self.cursor.execute(
-				DELETE_ROW_STR.format(
-				self.selected_table, id))
+			cst.DELETE_ROW_STR.format(
+			self.selected_table, id))
 		self.conn.commit()
 
 class TwitterDataDB(DealEyeDB):
-	def __init__(self):
-		super(TwitterDataDB, self).__init__()
+	def __init__(self, db_path):
+		super(TwitterDataDB, self).__init__(db_path)
 		self.selected_table = 'twitter_data'
 
+	def get_description(self, id):
+		return self.read(id=id, column='description')
+
+	def get_descriptions(self):
+		return self.read(column='description')
+
 if __name__ == '__main__':
-	dealeye_db = DealEyeDB('dealeye.db')
-	dealeye_db.selected_table = 'twitter_data'
-	#rtest = dealeye_db.read()
-	#dealeye_db.add(id='69', data={"name": "Emre Ertan", "profile_link": "https://twitter.com/emre_ertan", "keywords_searched": "gsb entrepreneur", "description": "Head of Growth at Slice and unroll.me, former entrepreneur, ocean lover, lucky basketball player, book enthusiast, GSB\'14.", "profile_url": None, "description_urls": [], "valid_contact_emails": [], "checked_contact_domains": [None]})
-	print(dealeye_db.read(id='69'))
-	#dealeye_db.delete('69')
+	twitter_db = TwitterDataDB('dealeye.db')
+	#print(twitter_db.get_description(id='861142195'))
 
-	#dealeye_db.write(id='69', data='Boi Wassup', column='name')
-
-
-	#print(rtest)
 			
