@@ -33,6 +33,7 @@ class DealEyeDB:
 			return [id[0] for id in result.fetchall()]
 
 	def row_exists(self, id):
+		#print(type(id), id)
 		result = self.cursor.execute(
 		cst.ROW_EXISTS_STR.format(
 		self.selected_table, id))
@@ -62,7 +63,7 @@ class DealEyeDB:
 
 				result = result.fetchone()
 				if result:
-					return result[1]
+					return json.loads(result[1])
 				else:
 					return None
 		else:
@@ -117,6 +118,8 @@ class DealEyeDB:
 	def add(self, id, data):
 		if not self.row_exists(id):
 			self.write(id, data=data)
+		else:
+			print('ID {} exists'.format(id))
 
 	def delete(self, id=None):
 		if id and self.row_exists(id):
@@ -138,6 +141,6 @@ class TwitterDataDB(DealEyeDB):
 
 if __name__ == '__main__':
 	twitter_db = TwitterDataDB('dealeye.db')
-	#print(twitter_db.get_description(id='861142195'))
-
+	print(twitter_db.get_description(id='861142195'))
+	pass
 			

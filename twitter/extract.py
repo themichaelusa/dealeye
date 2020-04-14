@@ -7,7 +7,7 @@ import socket
 from collections import defaultdict
 
 ## INIT COMMANDS
-sys.append('..')
+sys.path.append('..')
 socket.setdefaulttimeout(5)
 
 ### LOCAL IMPORTS
@@ -54,7 +54,7 @@ class TwitterDataExtractor:
 					return True
 		return False
 
-	def gen_data_dict(self, user_obj):
+	def gen_data_dict(self, user_obj, kwd_str):
 		return {
 		'name': rm_emojis(user_obj.name), 
 		'profile_link': TWITTER_USER_LINK.format(user_obj.screen_name),
@@ -65,6 +65,14 @@ class TwitterDataExtractor:
 		'valid_contact_emails': [],
 		'checked_contact_domains': []
 		}
+
+	def gen_default_data_dicts(self):
+		default_user_dicts = []
+		for uid, user_data in self.users_dict.items():
+			user_obj, kwd_str = user_data
+			data_dict = self.gen_data_dict(user_obj, kwd_str)
+			default_user_dicts.append((uid, data_dict))
+		return default_user_dicts
 
 	### FORMATTING FUNCS
 	def fmt_description(self, desc):
