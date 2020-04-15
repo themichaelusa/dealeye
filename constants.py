@@ -28,8 +28,8 @@ DEFAULT_WORKER_N = 5*cpu_count()
 
 ### TWITTER SCRAPER CONSTANTS
 SCHOOLS = {'harvard', 'hbs', 'stanford', 'gsb', 'penn', 'upenn', 'wharton'}
-STATUS = {'founder', 'co-founder', 'cofounder', 'entrepreneur', 'ceo', 'cfo', 'cto', 'coo', 'startup'}
-# MODIFIERS = {'stealth', 'startup'}
+STATUS = {'founder', 'co-founder', 'cofounder', 'entrepreneur', 'ceo', 'cfo', 'cto', 'coo', 'startup', 'building', 'leading'}
+MODIFIERS = {'stealth', 'startup'}
 EMAIL_BLACKLIST = {'linkedin.com', 'tumblr.com', 'forbes.com', 'wordpress.com', 'instagram.com', 'twitter.com', 'amazon.com', 'medium.com', 'github.com', 'wikipedia.org', 'substack.com','youtube.com', 'reuters.com', 'bbc.co.uk', 'blogspot.com', 'google.com', 'microsoft.com', 'huffpost.com', 'apple.com', 'uber.com', 'inc.com', 'sony.com', 'yahoo.com', 'cisco.com', 'mckinsey.com', 'ge.com', 'jpmorgan.com', 'salesforce.com', 'yext.com', 'goldmansachs.com', 'facebook.com', 'midpennbank.com', 'ironmountain.com', 'gilead.com', 'airbnb.com', 'expedia.com', 'guinnessworldrecords.com', 'crossfit.com', 'mlb.com', 'sonypictures.com', 'philadelphiaeagles.com', 'corporate.comcast.com', 'nba.com', 'deloitte.com', 'accenture.com', 'accel.com', 'ralphlauren.com', 'nike.com', 'vmware.com', 'github.io', 'angel.co', 'ycombinator.com'}
 TWITTER_DB_COLUMNS = ['name', 'profile_link', 'keywords_searched', 'description', 'profile_url', 'description_urls', 'valid_contact_emails', 'checked_contact_domains']
 

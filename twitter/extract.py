@@ -30,11 +30,20 @@ from constants import TWITTER_USER_LINK
 ### MACROS/LAMBDAS/GLOBALS
 
 class TwitterDataExtractor:
-	def __init__(self, users_dict):
-		self.users_dict = users_dict
+	def __init__(self):
+		self.users_dict = None
 
 	### GENERAL UTIL FUNCS
+	def get_target(self):
+		return self.users_dict
+
+	def set_target(self, users_dict):
+		self.users_dict = users_dict
+
+	# TODO: refactor later
 	def is_user_valid(self, user_obj):
+		return True
+
 		uname = user_obj.name
 		udesc = user_obj.description
 
@@ -98,15 +107,12 @@ class TwitterDataExtractor:
 		return None
 
 	def get_twitter_accounts_from_desc(self):
-		pass
-
-	def scrape_urls_from_descriptions(self):
 		unames_dict = defaultdict(list)
 		all_floating_urls = []
 
 		# get all existing urls in descs + all @
 		for uid in self.users_dict.keys():
-			desc = users_dict[uid]['description']
+			desc = self.users_dict[uid]['description']
 
 			# get all "@" links
 			split_desc = self.fmt_description(desc)
@@ -129,51 +135,51 @@ class TwitterDataExtractor:
 				all_floating_urls.append((uid, url))
 			"""
 
-		urls_dict = get_twitter_urls_by_unames(unames_dict)
-		urls_final = all_floating_urls 
+		return unames_dict, all_floating_urls
 
+	def get_urls_to_redirect_check(self, unames_dict, all_floating_urls, urls_dict):
+		urls_final = all_floating_urls 
 		for uname, uids in unames_dict.items():
 			url = urls_dict[uname] 
 			if url is not None:
 				urls_final.extend([(uid, url) for uid in uids])
+		return urls_final
 
-		# resolve all redirectable urls + save them in the users dict
-		for uid, url in get_redirect_urls(urls_final):
+	# save them in the users dict
+	def filter_user_urls(self, redirected_urls):
+		for uid, url in redirected_urls:
 			final_url = get_domain(url)
 			# todo: apply filter to final url
 
 			if '.edu' in final_url or '.mil' in final_url or '.gov' in final_url:
 				continue
 
+			"""
 			if '.org' in final_url or '.net' in final_url:
 				continue
+			"""
 
 			if is_blocked_url(url):
 				continue
 
 			users_dict[uid]['description_urls'].append(final_url)
-		
-	# todo: look behind, and see if current page is duplicate of prev page
-	def format_users_dict(self):
-		# format users dict: get data we want
-		formatted_users = {}
-		for uid in self.users_dict.keys():
-			user_obj, kwd_str = self.users_dict[uid]
 
+	def get_all_users_profile_urls(self):
+		all_profile_urls = []
+
+		for id, data in self.users_dict.items():
 			# todo: filtering step. Name + Description
-			if not self.is_user_valid(user_obj):
+			if not self.is_user_valid(data):
 				continue
 
-			formatted_users[uid] = self.gen_data_dict()
+			all_profile_urls.append(
+				(id, data['profile_url']))
 
-		# parse redirect urls & update urls in fmt_dict
-		raw_urls = []
-		for uid in formatted_users.keys():
-			url = formatted_users[uid]['profile_url']
-			raw_urls.append((uid, url))
-
-		urls_data = get_redirect_urls(raw_urls)
-		for uid, url in urls_data:
+		return all_profile_urls
+		
+	# todo: look behind, and see if current page is duplicate of prev page
+	def filter_profile_urls(self, urls_final):
+		for uid, url in urls_final:
 			# apply filter here
 			local_url = get_domain(url)
 			if url is None:
@@ -187,16 +193,12 @@ class TwitterDataExtractor:
 			elif '.edu' in url or '.mil' in url or '.gov' in url:
 				local_url = None
 
-			formatted_users[uid]['profile_url'] = local_url
+			self.users_dict[uid]['profile_url'] = local_url
 
-		for k,v in formatted_users.items():
+		for k,v in self.users_dict.items():
 			url = v['profile_url']
 			# todo, do a recursive resolution here
 			if url is not None and '://t.co' in url:
 				v['profile_url'] = None
-
-		self.scrape_urls_from_descriptions()
-
-		return formatted_users
 
 

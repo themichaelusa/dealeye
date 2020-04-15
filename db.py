@@ -81,7 +81,9 @@ class DealEyeDB:
 				result = self.cursor.execute(
 				cst.READ_ALL_ROWS_STR.format(
 				self.selected_table))
-				return result.fetchall()
+
+				result = result.fetchall()
+				return [(id, json.loads(r)) for id, r in result]
 
 	# if column=None, read row. if id is None, read_all
 	def write(self, id, column=None, data=None):
@@ -126,6 +128,9 @@ class DealEyeDB:
 			self.cursor.execute(
 			cst.DELETE_ROW_STR.format(
 			self.selected_table, id))
+		self.conn.commit()
+
+	def save(self):
 		self.conn.commit()
 
 class TwitterDataDB(DealEyeDB):

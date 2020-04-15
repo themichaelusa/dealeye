@@ -9,7 +9,7 @@ class RedirectURLResolver:
 		pass
 
 	def __call__(self, urls_data):
-		return get_redirect_urls(urls_data)
+		return self.get_redirect_urls(urls_data)
 
 	def __get_redirect_url(self, url_data):
 		uid, url = url_data
@@ -24,7 +24,7 @@ class RedirectURLResolver:
 
 		return uid, redirect_url
 
-	def get_redirect_urls(data, workers=DEFAULT_WORKER_N):
+	def get_redirect_urls(self, data, workers=DEFAULT_WORKER_N):
 		urls_data = []
 
 		# verify emails conncurrently
