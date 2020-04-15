@@ -137,7 +137,7 @@ class TwitterDataExtractor:
 
 		return unames_dict, all_floating_urls
 
-	def get_urls_to_redirect_check(self, unames_dict, all_floating_urls, urls_dict):
+	def get_all_desc_urls(self, unames_dict, all_floating_urls, urls_dict):
 		urls_final = all_floating_urls 
 		for uname, uids in unames_dict.items():
 			url = urls_dict[uname] 
@@ -146,7 +146,7 @@ class TwitterDataExtractor:
 		return urls_final
 
 	# save them in the users dict
-	def filter_user_urls(self, redirected_urls):
+	def filter_desc_urls(self, redirected_urls):
 		for uid, url in redirected_urls:
 			final_url = get_domain(url)
 			# todo: apply filter to final url

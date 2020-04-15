@@ -138,6 +138,9 @@ class TwitterDataDB(DealEyeDB):
 		super(TwitterDataDB, self).__init__(db_path)
 		self.selected_table = 'twitter_data'
 
+	def get_all_users_as_dict(self):
+		return {id:data for id, data in self.read()}
+
 	def get_description(self, id):
 		return self.read(id=id, column='description')
 

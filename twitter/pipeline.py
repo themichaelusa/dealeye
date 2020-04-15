@@ -5,10 +5,12 @@ import sys
 sys.path.append('..')
 
 ### LOCAL IMPORTS
+import export
 from db import TwitterDataDB
 from scrape import TwitterScraper
 from extract import TwitterDataExtractor
 from url_utils import RedirectURLResolver
+from email_utils import HunterEmailResolver
 
 ### PACKAGE IMPORTS
 pass
@@ -22,6 +24,7 @@ TW_DB = TwitterDataDB('../dealeye.db')
 TW_SCRAPER = TwitterScraper()
 TW_CLEANER = TwitterDataExtractor()
 REDIR_URL_RESOLVER = RedirectURLResolver()
+CONTACT_EMAIL_SCRAPER = HunterEmailResolver()
 
 ### MAIN ###
 def scrape_users(location, status):
@@ -35,10 +38,9 @@ def scrape_users(location, status):
 		tw_db.add(str(uid), data)
 
 def extract_user_contact_links():
-	users_dict = {id:data for id,data in TW_DB.read()}
+	users_dict = TW_DB.get_all_users_as_dict()
 	TW_CLEANER.set_target(users_dict)
-	print(TW_CLEANER.users_dict)
-
+ 
 	### resolve profile urls
 	raw_profile_urls = TW_CLEANER.get_all_users_profile_urls()
 	profile_urls = REDIR_URL_RESOLVER(raw_profile_urls)
@@ -50,18 +52,34 @@ def extract_user_contact_links():
 	urls_dict = TW_SCRAPER.get_twitter_urls_by_unames(unames_dict)
 
 	### prep all urls for redirect resolution + run resolver
-	urls_final = TW_CLEANER.get_urls_to_redirect_check(
-	*descs_data, urls_dict)
+	urls_final = TW_CLEANER.get_all_desc_urls(*descs_data, urls_dict)
 	redir_urls = REDIR_URL_RESOLVER(urls_final)
+	TW_CLEANER.filter_desc_urls(redir_urls)
 
-	### apply filter to our scraped users + store in DB
-	TW_CLEANER.filter_user_urls(redir_urls)
+	### after all data engineering --> store in DB
 	for id, data in TW_CLEANER.get_target().items():
 		TW_DB.write(id=id, data=data)
 
-def test():
-	#pass
+def extract_contact_emails_for_users():
+	users_dict = TW_DB.get_all_users_as_dict()
+	CONTACT_EMAIL_SCRAPER.set_target(users_dict)
+
+	## filter which emails to parse 
+	ids_to_parse = []
+	for id, data in users_dict.items():
+		if len(data['description_urls']):
+			if not len(data['valid_contact_emails']):
+				ids_to_parse.append(id)
+
+	CONTACT_EMAIL_SCRAPER.scrape_contact_emails_for_users(
+		set(ids_to_parse))
+	for id, data in CONTACT_EMAIL_SCRAPER.get_target().items():
+		TW_DB.write(id=id, data=data)
+
+def export_db_to_excel(ex_path):
+	users_dict = TW_DB.get_all_users_as_dict()
+	export.users_to_xlsx(ex_path, users_dict.values())
 
 if __name__ == '__main__':
-	pass
+	export_db_to_excel('../broader_terms.xlsx')
 
