@@ -154,15 +154,13 @@ class TwitterDataExtractor:
 			if '.edu' in final_url or '.mil' in final_url or '.gov' in final_url:
 				continue
 
-			"""
-			if '.org' in final_url or '.net' in final_url:
-				continue
-			"""
-
-			if is_blocked_url(url):
+			if '.net' in final_url:
 				continue
 
-			users_dict[uid]['description_urls'].append(final_url)
+			if self.is_blocked_url(url):
+				continue
+
+			self.users_dict[uid]['description_urls'].append(final_url)
 
 	def get_all_users_profile_urls(self):
 		all_profile_urls = []
@@ -186,11 +184,11 @@ class TwitterDataExtractor:
 				local_url = None
 			elif is_blocked_url(url):
 				local_url = None
-			elif '.net' in url or '.org' in url:
-				local_url = None
 			elif len(url) > 50:
 				local_url = None
-			elif '.edu' in url or '.mil' in url or '.gov' in url:
+			elif '.net' in url or '.edu' in url:
+				local_url = None
+			elif '.mil' in url or '.gov' in url:
 				local_url = None
 
 			self.users_dict[uid]['profile_url'] = local_url

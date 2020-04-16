@@ -1,4 +1,5 @@
 ### STDLIB IMPORTS
+import requests
 import concurrent.futures
 from constants import DEFAULT_WORKER_N
 
@@ -37,7 +38,7 @@ class RedirectURLResolver:
 		            urls_data.append(data)
 		        except Exception as exc:
 		        	# todo: add loggers here
-		           	pass
+		        	print('redir error:', exc)
 
 		return (d for d in urls_data)
 		

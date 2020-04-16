@@ -105,7 +105,6 @@ class TwitterScraper:
 
 		return urls_dict
 
-
 if __name__ == '__main__':
 	pass
 	#keywords_list = gen_keyword_space()
