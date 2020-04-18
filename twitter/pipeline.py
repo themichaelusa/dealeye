@@ -6,7 +6,7 @@ sys.path.append('..')
 
 ### LOCAL IMPORTS
 import export
-from db import TwitterDataDB
+from store import TwitterDataDB
 from scrape import TwitterScraper
 from extract import TwitterDataExtractor
 from url_utils import RedirectURLResolver
@@ -50,9 +50,6 @@ def extract_user_contact_links():
 	descs_data = TW_CLEANER.get_twitter_accounts_from_desc()
 	unames_dict, all_floating_urls = descs_data
 	urls_dict = TW_SCRAPER.get_twitter_urls_by_unames(unames_dict)
-
-	#print(urls_dict)
-	#exit()
 
 	### prep all urls for redirect resolution + run resolver
 	urls_final = TW_CLEANER.get_all_desc_urls(*descs_data, urls_dict)
