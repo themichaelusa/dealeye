@@ -99,25 +99,4 @@ def export_db_to_excel(ex_path):
 	export.users_to_xlsx(ex_path, users_dict.values())
 
 if __name__ == '__main__':
-
-	#extract_user_contact_links()
-	#extract_user_contact_links()
-	#extract_contact_emails_for_users()
-	"""
-	users_dict = TW_DB.get_all_users_as_dict()
-
-	ids_to_check = []
-	for id, data in users_dict.items():
-		if not len(data['description_urls']):
-			ids_to_check.append(id)
-
-	for id in ids_to_check:
-		desc = users_dict[id]['description']
-		desc = TW_CLEANER.fmt_description(desc)
-		print(TW_CLEANER.get_probable_tlink(desc), desc)
-	"""
-
 	export_db_to_excel('../broader_terms.xlsx')
-	#ex
-
-
