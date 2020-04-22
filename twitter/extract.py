@@ -199,4 +199,6 @@ class TwitterDataExtractor:
 			if url is not None and '://t.co' in url:
 				v['profile_url'] = None
 
+if __name__ == '__main__':
+	pass
 

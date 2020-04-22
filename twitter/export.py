@@ -7,3 +7,6 @@ def users_to_xlsx(wpath, data, colns=TWITTER_DB_COLUMNS):
 
 def xlsx_to_users(rpath):
 	return pd.read_excel(rpath)
+
+if __name__ == '__main__':
+	pass

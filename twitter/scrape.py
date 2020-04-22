@@ -107,7 +107,4 @@ class TwitterScraper:
 
 if __name__ == '__main__':
 	pass
-	#keywords_list = gen_keyword_space()
-	#users_data = pull_users_by_keywords_list(keywords_list[:10])
-	#set_contact_emails_for_user(users_data)
 

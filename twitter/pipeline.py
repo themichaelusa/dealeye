@@ -99,4 +99,4 @@ def export_db_to_excel(ex_path):
 	export.users_to_xlsx(ex_path, users_dict.values())
 
 if __name__ == '__main__':
-	export_db_to_excel('../broader_terms.xlsx')
+	#export_db_to_excel('../broader_terms.xlsx')
