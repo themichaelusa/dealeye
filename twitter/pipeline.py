@@ -2,7 +2,7 @@
 import sys
 
 ## INIT COMMANDS
-sys.path.append('..')
+sys.path.append('../')
 
 ### LOCAL IMPORTS
 import export
@@ -100,3 +100,4 @@ def export_db_to_excel(ex_path):
 
 if __name__ == '__main__':
 	#export_db_to_excel('../broader_terms.xlsx')
+	extract_user_contact_links()
